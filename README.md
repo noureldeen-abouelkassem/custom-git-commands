@@ -9,3 +9,8 @@ This repository is a collection of custom Git commands designed to streamline an
   See the [full documentation](Git%20create%20jira%20branch/README.md) for usage, configuration, and details.
 
 </details>
+
+
+## License
+
+This project is licensed under the terms of the [MIT License](LICENSE).
