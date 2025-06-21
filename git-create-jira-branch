@@ -1,0 +1,87 @@
+#!/bin/bash
+JIRA_EMAIL="example@email.com"
+JIRA_API_TOKEN="your_jira_api_token"
+USERNAME="your_username"
+BOARD_KEY="your_board_key"  # e.g., "PRO", "MOBILE", etc.
+BOARD_CLOUD_ID="your_board_cloud_id"  # e.g., "12345678-1234-1234-1234-123456789012" 
+#This is the cloud ID of your Jira board 
+# you can git it from the URL of your board in Jira
+# "https://<your-site-name>.atlassian.net/_edge/tenant_info"
+
+usage() {
+echo "Usage: git branchc <TICKET_NUMBER>"
+echo "Example: git branchc PRO 123"
+exit 1
+}
+
+if ! command -v jq &> /dev/null; then
+echo "Error: 'jq' is not installed. Please install it to use this script."
+echo "On macOS: brew install jq"
+exit 1
+fi
+
+if [ "$#" -ne 1 ]; then
+usage
+fi
+
+TICKET_NUMBER=$1
+ISSUE_KEY="${BOARD_KEY}-${TICKET_NUMBER}"
+
+if [[ "$JIRA_EMAIL" == "[your-email@example.com](mailto:your-email@example.com)" || "$JIRA_API_TOKEN" == "YOUR_JIRA_API_TOKEN" ]]; then
+echo "Error: Please configure your JIRA_EMAIL, and JIRA_API_TOKEN in the script."
+exit 1
+fi
+
+echo "Fetching details for Jira ticket: ${ISSUE_KEY}..."
+
+API_URL="https://api.atlassian.com/ex/jira/${BOARD_CLOUD_ID}/rest/api/3/issue/${ISSUE_KEY}"
+
+HTTP_RESPONSE=$(curl --silent --write-out "HTTPSTATUS:%{http_code}" \
+--request GET \
+--url "${API_URL}" \
+--user "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
+--header "Accept: application/json")
+
+HTTP_STATUS=$(echo "$HTTP_RESPONSE" | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
+
+JSON_BODY=$(echo "$HTTP_RESPONSE" | sed -e 's/HTTPSTATUS\:.*//g')
+
+if [ "$HTTP_STATUS" -ne 200 ]; then
+echo "Error: Failed to fetch Jira ticket. Status code: ${HTTP_STATUS}"
+if [ "$HTTP_STATUS" -eq 404 ]; then
+echo "The ticket '${ISSUE_KEY}' was not found."
+elif [ "$HTTP_STATUS" -eq 401 ]; then
+echo "Authentication failed. Please check your JIRA_EMAIL and JIRA_API_TOKEN."
+fi
+exit 1
+fi
+
+echo "Successfully fetched details for Jira ticket: ${ISSUE_KEY}"
+
+TICKET_SUMMARY=$(echo "$JSON_BODY" | jq -r '.fields.summary')
+
+if [ -z "$TICKET_SUMMARY" ] || [ "$TICKET_SUMMARY" == "null" ]; then
+echo "Error: Could not find the ticket summary in the Jira response."
+exit 1
+fi
+
+echo "Ticket title: '${TICKET_SUMMARY}'"
+
+BRANCH_SUMMARY=$(echo "$TICKET_SUMMARY" | \
+tr '[:upper:]' '[:lower:]' | \
+tr ' _' '-' | \
+sed 's/[^a-z0-9-]//g' | \
+sed 's/--\+/-/g' | \
+sed 's/^-//g' | \
+sed 's/-$//g')
+
+BRANCH_NAME="${USERNAME}/${ISSUE_KEY}/${BRANCH_SUMMARY}"
+
+git checkout -b "$BRANCH_NAME"
+
+if [ $? -eq 0 ]; then
+echo "Successfully created and switched to branch '${BRANCH_NAME}'."
+else
+echo "Error: Failed to create branch. Does a branch with that name already exist?"
+exit 1
+fi
