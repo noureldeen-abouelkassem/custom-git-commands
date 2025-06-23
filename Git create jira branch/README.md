@@ -42,4 +42,5 @@ Before using the script, you **must configure** these placeholders at the top of
 | `JIRA_EMAIL`     | Your Atlassian (Jira) email address.                                                                      | `"your.email@domain.com"`                          |
 | `JIRA_API_TOKEN` | Your Jira API token. Create one at https://id.atlassian.com/manage-profile/security/api-tokens             | `"your_jira_api_token"`                            |
 | `USERNAME`       | Your Git username or handle. This will be prefixed to the branch name.                                     | `"myname"`                                           |
-| `BOARD_KEY`      | The key                            | `PRO`
+| `BOARD_KEY`      | The key                            | `PRO`                                                                 |
+| `BOARD_CLOUD_ID` | The cloud id of your Jira Board | You can get it from `https://<your-site-name>.atlassian.net/_edge/tenant_info"` |  
